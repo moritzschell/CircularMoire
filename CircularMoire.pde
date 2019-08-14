@@ -1,11 +1,22 @@
+float circleRadius;
+PVector circleCenter;
+
 void setup(){
   size(600, 600);
+  smooth();
+  pixelDensity(2);
+  
+  //define circular shape
+  circleRadius = 200;
+  circleCenter = new PVector(width/2, height/2);
   
 }
 
 
 void draw(){
   background(255);
+  
+  ellipse(circleCenter.x, circleCenter.y, circleRadius*2, circleRadius*2);
   
 }
 
