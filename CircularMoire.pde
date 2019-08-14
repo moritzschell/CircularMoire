@@ -1,10 +1,24 @@
+import controlP5.*;
+ControlP5 cp5;
+
 float circleRadius;
 PVector circleCenter;
 
 float rotate1 = 0.0;
 float rotate2 = 0.0;
 
-float rotate1Speed, rotate2Speed;
+float offset1 = 0.0;
+float offset2 = 0.0;
+
+float gridDistance = 5.0;
+boolean invertCol = false;
+
+Slider rotationSlider1, rotationSlider2;
+Slider gridDistanceSlider;
+Slider offsetSlider1, offsetSlider2;
+Toggle invertColor;
+
+boolean showUI = true;
 
 void setup() {
   size(600, 600);
@@ -15,25 +29,73 @@ void setup() {
   circleRadius = 200;
   circleCenter = new PVector(width/2, height/2);
   
-  rotate1Speed = random(0.01, 0.02);
-  rotate2Speed = random(0.01, 0.02);
+  cp5 = new ControlP5(this);
+  
+  rotationSlider1 = cp5.addSlider("rotate1")
+     .setPosition(10, 10)
+     .setRange(0, PI)
+     .setSize(100, 20)
+     .setValue(0.78)
+     .setColorCaptionLabel(color(0, 50, 170)) 
+     ;
+     
+  rotationSlider2 = cp5.addSlider("rotate2")
+     .setPosition(10, 40)
+     .setRange(0, PI)
+     .setSize(100, 20)
+     .setValue(0.81)
+     .setColorCaptionLabel(color(0, 50, 170)) 
+     ;
+  
+  gridDistanceSlider = cp5.addSlider("gridDistance")
+     .setPosition(160, 10)
+     .setRange(2.0, 10.0)
+     .setSize(100, 20)
+     .setColorCaptionLabel(color(0, 50, 170)) 
+     ;
+  
+  invertColor = cp5.addToggle("invertCol")
+     .setCaptionLabel("Invert Color")
+     .setPosition(160, 40)
+     .setSize(20, 20)
+     .setColorCaptionLabel(color(0, 50, 170)) 
+     ;
+     
+  offsetSlider1 = cp5.addSlider("offset1")
+     .setPosition(330, 10)
+     .setRange(-10, 10.0)
+     .setValue(0.0)
+     .setSize(100, 20)
+     .setColorCaptionLabel(color(0, 50, 170)) 
+     ;
+     
+  offsetSlider2 = cp5.addSlider("offset2")
+     .setPosition(330, 40)
+     .setRange(-10, 10.0)
+     .setValue(0.0)
+     .setSize(100, 20)
+     .setColorCaptionLabel(color(0, 50, 170)) 
+     ;
 }
 
 
 void draw() {
+  
   background(255);
+  if(invertCol) background(0);
 
   noFill();
   stroke(0);
+  if(invertCol) stroke(255);
 
   pushMatrix();
   translate(width/2, height/2);
   rotate(rotate1);
   translate(-width/2, -height/2);
 
-  for (int i = 0; i <= width; i+=5 ) {
-    PVector lineStart = new PVector(i, 0);
-    PVector lineEnd = new PVector(i, height);
+  for (int i = 0; i <= width; i+=gridDistance ) {
+    PVector lineStart = new PVector(i+offset1, 0);
+    PVector lineEnd = new PVector(i+offset1, height);
     ArrayList<PVector> _intersectionPoints = returnIntersectionPoints(lineStart, lineEnd, circleCenter, circleRadius);
     if (_intersectionPoints.size() == 2) {
       line(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, _intersectionPoints.get(1).x, _intersectionPoints.get(1).y);
@@ -46,9 +108,9 @@ void draw() {
   rotate(rotate2);
   translate(-width/2, -height/2);
 
-  for (int i = 0; i <= width; i+=5) {
-    PVector lineStart = new PVector(i, 0);
-    PVector lineEnd = new PVector(i, height);
+  for (int i = 0; i <= width; i+=gridDistance) {
+    PVector lineStart = new PVector(i+offset2, 0);
+    PVector lineEnd = new PVector(i+offset2, height);
     ArrayList<PVector> _intersectionPoints = returnIntersectionPoints(lineStart, lineEnd, circleCenter, circleRadius);
     if (_intersectionPoints.size() == 2) {
       line(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, _intersectionPoints.get(1).x, _intersectionPoints.get(1).y);
@@ -58,21 +120,44 @@ void draw() {
 
 
   //ellipse(circleCenter.x, circleCenter.y, circleRadius*2, circleRadius*2);
+  
+  if(showUI){
+    fill(0);
+    if(invertCol) fill(255);
+    text("Press SPACEBAR to toggle visibility of Controls...", 10, height-30);
+  }
+  
+}
 
-  rotate1 += rotate1Speed;
-  rotate2 -= rotate2Speed;
+void keyPressed(){
   
-  if(rotate1 >= PI){
-    rotate1Speed = random(0.01, 0.1);
-    rotate1 = 0;
-    println("1...");
-  } 
-  if(rotate2 <= -PI){
-    rotate2Speed = random(0.01, 0.1);
-    rotate2 = 0;
-    println("2...");
-  } 
+  if(key == ' '){
+    showUI = !showUI;
+  }
+  if(showUI){
+    showUI();
+  } else {
+    hideUI();
+  }
   
+}
+
+void showUI(){
+  rotationSlider1.show();
+  rotationSlider2.show();
+  gridDistanceSlider.show();
+  invertColor.show();
+  offsetSlider1.show();
+  offsetSlider2.show();
+}
+
+void hideUI(){
+  rotationSlider1.hide();
+  rotationSlider2.hide();
+  gridDistanceSlider.hide();
+  invertColor.hide();
+  offsetSlider1.hide();
+  offsetSlider2.hide();
 }
 
 
