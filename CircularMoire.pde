@@ -13,6 +13,9 @@ float offset2 = 0.0;
 float gridDistance = 5.0;
 boolean invertCol = false;
 
+ArrayList<PVector[]> firstGrid;  //Holding start and end points of first grid
+ArrayList<PVector[]> secondGrid; //Holding start and end points of overlaying grid
+
 Slider rotationSlider1, rotationSlider2;
 Slider gridDistanceSlider;
 Slider offsetSlider1, offsetSlider2;
@@ -21,7 +24,7 @@ Toggle invertColor;
 boolean showUI = true;
 
 void setup() {
-  size(600, 600);
+  size(600, 600, P3D);
   smooth();
   pixelDensity(2);
 
@@ -29,6 +32,11 @@ void setup() {
   circleRadius = 200;
   circleCenter = new PVector(width/2, height/2);
   
+  firstGrid = new ArrayList<PVector[]>();
+  secondGrid = new ArrayList<PVector[]>();
+  
+  
+  ///UI Stuff
   cp5 = new ControlP5(this);
   
   rotationSlider1 = cp5.addSlider("rotate1")
@@ -93,12 +101,28 @@ void draw() {
   rotate(rotate1);
   translate(-width/2, -height/2);
 
+  firstGrid.clear(); //Clear ArrayList 
   for (int i = 0; i <= width; i+=gridDistance ) {
     PVector lineStart = new PVector(i+offset1, 0);
     PVector lineEnd = new PVector(i+offset1, height);
     ArrayList<PVector> _intersectionPoints = returnIntersectionPoints(lineStart, lineEnd, circleCenter, circleRadius);
     if (_intersectionPoints.size() == 2) {
-      line(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, _intersectionPoints.get(1).x, _intersectionPoints.get(1).y);
+      PVector[] startEndPoints = new PVector[2];
+      
+      float startX = modelX(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, 0); //get real x-coordinate based on original coorinate and transformation 
+      float startY = modelY(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, 0); //get real x-coordinate based on original coorinate and transformation 
+      PVector startPoint = new PVector(startX, startY);
+      
+      float endX = modelX(_intersectionPoints.get(1).x, _intersectionPoints.get(1).y, 0); //get real x-coordinate based on original coorinate and transformation 
+      float endY = modelY(_intersectionPoints.get(1).x, _intersectionPoints.get(1).y, 0); //get real x-coordinate based on original coorinate and transformation 
+      PVector endPoint = new PVector(endX, endY);
+      
+      startEndPoints[0] = startPoint; //assign to Array...
+      startEndPoints[1] = endPoint;
+      
+      firstGrid.add(startEndPoints); //add to ArrayList...
+      
+      //line(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, _intersectionPoints.get(1).x, _intersectionPoints.get(1).y);
     }
   }
   popMatrix();
@@ -108,19 +132,49 @@ void draw() {
   rotate(rotate2);
   translate(-width/2, -height/2);
 
+  secondGrid.clear();
   for (int i = 0; i <= width; i+=gridDistance) {
     PVector lineStart = new PVector(i+offset2, 0);
     PVector lineEnd = new PVector(i+offset2, height);
     ArrayList<PVector> _intersectionPoints = returnIntersectionPoints(lineStart, lineEnd, circleCenter, circleRadius);
     if (_intersectionPoints.size() == 2) {
-      line(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, _intersectionPoints.get(1).x, _intersectionPoints.get(1).y);
+      PVector[] startEndPoints = new PVector[2];
+      
+      float startX = modelX(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, 0); //get real x-coordinate based on original coorinate and transformation 
+      float startY = modelY(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, 0); //get real x-coordinate based on original coorinate and transformation 
+      PVector startPoint = new PVector(startX, startY);
+      
+      float endX = modelX(_intersectionPoints.get(1).x, _intersectionPoints.get(1).y, 0); //get real x-coordinate based on original coorinate and transformation 
+      float endY = modelY(_intersectionPoints.get(1).x, _intersectionPoints.get(1).y, 0); //get real x-coordinate based on original coorinate and transformation 
+      PVector endPoint = new PVector(endX, endY);
+      
+      startEndPoints[0] = startPoint; //assign to Array...
+      startEndPoints[1] = endPoint;
+      
+      secondGrid.add(startEndPoints); //add to ArrayList...
+      
+      //line(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, _intersectionPoints.get(1).x, _intersectionPoints.get(1).y);
     }
   }
   popMatrix();
 
 
+  ///draw the lines...
+  for(PVector[] startEndPoints : firstGrid){
+    PVector startPoint = startEndPoints[0];
+    PVector endPoint = startEndPoints[1];
+    line(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
+  }
+  for(PVector[] startEndPoints : secondGrid){
+    PVector startPoint = startEndPoints[0];
+    PVector endPoint = startEndPoints[1];
+    line(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
+  }
+  
+  ///draw the circle
   //ellipse(circleCenter.x, circleCenter.y, circleRadius*2, circleRadius*2);
   
+  ///show instructions
   if(showUI){
     fill(0);
     if(invertCol) fill(255);
