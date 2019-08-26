@@ -1,4 +1,5 @@
 import controlP5.*;
+import processing.serial.*;
 ControlP5 cp5;
 
 float circleRadius;
@@ -31,172 +32,311 @@ void setup() {
   //define circular shape
   circleRadius = 200;
   circleCenter = new PVector(width/2, height/2);
-  
+
   firstGrid = new ArrayList<PVector[]>();
   secondGrid = new ArrayList<PVector[]>();
-  
-  
+
+
   ///UI Stuff
   cp5 = new ControlP5(this);
-  
+
   rotationSlider1 = cp5.addSlider("rotate1")
-     .setPosition(10, 10)
-     .setRange(0, PI)
-     .setSize(100, 20)
-     .setValue(0.78)
-     .setColorCaptionLabel(color(0, 50, 170)) 
-     ;
-     
+    .setPosition(10, 10)
+    .setRange(0, PI)
+    .setSize(100, 20)
+    .setValue(0.78)
+    .setColorCaptionLabel(color(0, 50, 170)) 
+    ;
+
   rotationSlider2 = cp5.addSlider("rotate2")
-     .setPosition(10, 40)
-     .setRange(0, PI)
-     .setSize(100, 20)
-     .setValue(0.81)
-     .setColorCaptionLabel(color(0, 50, 170)) 
-     ;
-  
+    .setPosition(10, 40)
+    .setRange(0, PI)
+    .setSize(100, 20)
+    .setValue(0.81)
+    .setColorCaptionLabel(color(0, 50, 170)) 
+    ;
+
   gridDistanceSlider = cp5.addSlider("gridDistance")
-     .setPosition(160, 10)
-     .setRange(2.0, 10.0)
-     .setSize(100, 20)
-     .setColorCaptionLabel(color(0, 50, 170)) 
-     ;
-  
+    .setPosition(160, 10)
+    .setRange(2.0, 10.0)
+    .setSize(100, 20)
+    .setColorCaptionLabel(color(0, 50, 170)) 
+    ;
+
   invertColor = cp5.addToggle("invertCol")
-     .setCaptionLabel("Invert Color")
-     .setPosition(160, 40)
-     .setSize(20, 20)
-     .setColorCaptionLabel(color(0, 50, 170)) 
-     ;
-     
+    .setCaptionLabel("Invert Color")
+    .setPosition(160, 40)
+    .setSize(20, 20)
+    .setColorCaptionLabel(color(0, 50, 170)) 
+    ;
+
   offsetSlider1 = cp5.addSlider("offset1")
-     .setPosition(330, 10)
-     .setRange(-10, 10.0)
-     .setValue(0.0)
-     .setSize(100, 20)
-     .setColorCaptionLabel(color(0, 50, 170)) 
-     ;
-     
+    .setPosition(330, 10)
+    .setRange(-10, 10.0)
+    .setValue(0.0)
+    .setSize(100, 20)
+    .setColorCaptionLabel(color(0, 50, 170)) 
+    ;
+
   offsetSlider2 = cp5.addSlider("offset2")
-     .setPosition(330, 40)
-     .setRange(-10, 10.0)
-     .setValue(0.0)
-     .setSize(100, 20)
-     .setColorCaptionLabel(color(0, 50, 170)) 
-     ;
+    .setPosition(330, 40)
+    .setRange(-10, 10.0)
+    .setValue(0.0)
+    .setSize(100, 20)
+    .setColorCaptionLabel(color(0, 50, 170)) 
+    ;
+
+  //AxiDrawSettings___________________________________________
+  ServoUp = 7500 + 175 * ServoUpPct;    // Brush UP position, native units
+  ServoPaint = 7500 + 175 * ServoPaintPct;   // Brush DOWN position, native units. 
+
+  NextMoveTime = millis();
+
+  if (PaperSizeA4) {
+    MousePaperRight = round(MousePaperLeft + PixelsPerInch * 297/2/25.4);
+    MousePaperBottom = round(MousePaperTop + PixelsPerInch * 210/25.4);
+  } else {
+    MousePaperRight = round(MousePaperLeft + PixelsPerInch * 11.0);
+    MousePaperBottom = round(MousePaperTop + PixelsPerInch * 8.5);
+  }
+
+  MotorMinX = 0;
+  MotorMinY = 0;
+  MotorMaxX = int(floor(float(MousePaperRight - MousePaperLeft) * MotorStepsPerPixel)) ;
+  MotorMaxY = int(floor(float(MousePaperBottom - MousePaperTop) * MotorStepsPerPixel)) ;
+
+  lastPosition = new PVector(-1, -1);
+
+  ToDoList = new PVector[0];
+  indexDone = -1;    // Index in to-do list of last action performed
+
+  Paused = true;
 }
 
 
 void draw() {
-  
-  background(255);
-  if(invertCol) background(0);
 
-  noFill();
-  stroke(0);
-  if(invertCol) stroke(255);
+  if (doSerialConnect == true) {
+    // FIRST RUN ONLY:  Connect here, so that 
+    doSerialConnect = false;
 
-  pushMatrix();
-  translate(width/2, height/2);
-  rotate(rotate1);
-  translate(-width/2, -height/2);
+    scanSerial();
 
-  firstGrid.clear(); //Clear ArrayList 
-  for (int i = 0; i <= width; i+=gridDistance ) {
-    PVector lineStart = new PVector(i+offset1, 0);
-    PVector lineEnd = new PVector(i+offset1, height);
-    ArrayList<PVector> _intersectionPoints = returnIntersectionPoints(lineStart, lineEnd, circleCenter, circleRadius);
-    if (_intersectionPoints.size() == 2) {
-      PVector[] startEndPoints = new PVector[2];
-      
-      float startX = modelX(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, 0); //get real x-coordinate based on original coorinate and transformation 
-      float startY = modelY(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, 0); //get real x-coordinate based on original coorinate and transformation 
-      PVector startPoint = new PVector(startX, startY);
-      
-      float endX = modelX(_intersectionPoints.get(1).x, _intersectionPoints.get(1).y, 0); //get real x-coordinate based on original coorinate and transformation 
-      float endY = modelY(_intersectionPoints.get(1).x, _intersectionPoints.get(1).y, 0); //get real x-coordinate based on original coorinate and transformation 
-      PVector endPoint = new PVector(endX, endY);
-      
-      startEndPoints[0] = startPoint; //assign to Array...
-      startEndPoints[1] = endPoint;
-      
-      firstGrid.add(startEndPoints); //add to ArrayList...
-      
-      //line(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, _intersectionPoints.get(1).x, _intersectionPoints.get(1).y);
+    if (SerialOnline) {    
+      myPort.write("EM,2\r");  //Configure both steppers to 1/8 step mode
+
+      // Configure brush lift servo endpoints and speed
+      myPort.write("SC,4," + str(ServoPaint) + "\r");  // Brush DOWN position, for painting
+      myPort.write("SC,5," + str(ServoUp) + "\r");  // Brush UP position 
+
+      //    myPort.write("SC,10,255\r"); // Set brush raising and lowering speed.
+      myPort.write("SC,10,65535\r"); // Set brush raising and lowering speed.
+
+      // Ensure that we actually raise the brush:
+      BrushDown = true;  
+      raiseBrush();  
+      //lowerBrush();
+
+      println("Now entering interactive painting mode.\n");
+    } else { 
+      println("Now entering offline simulation mode.\n");
     }
-  }
-  popMatrix();
+  } else {
+    background(255);
+    if (invertCol) background(0);
 
-  pushMatrix();
-  translate(width/2, height/2);
-  rotate(rotate2);
-  translate(-width/2, -height/2);
+    noFill();
+    stroke(0);
+    if (invertCol) stroke(255);
 
-  secondGrid.clear();
-  for (int i = 0; i <= width; i+=gridDistance) {
-    PVector lineStart = new PVector(i+offset2, 0);
-    PVector lineEnd = new PVector(i+offset2, height);
-    ArrayList<PVector> _intersectionPoints = returnIntersectionPoints(lineStart, lineEnd, circleCenter, circleRadius);
-    if (_intersectionPoints.size() == 2) {
-      PVector[] startEndPoints = new PVector[2];
-      
-      float startX = modelX(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, 0); //get real x-coordinate based on original coorinate and transformation 
-      float startY = modelY(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, 0); //get real x-coordinate based on original coorinate and transformation 
-      PVector startPoint = new PVector(startX, startY);
-      
-      float endX = modelX(_intersectionPoints.get(1).x, _intersectionPoints.get(1).y, 0); //get real x-coordinate based on original coorinate and transformation 
-      float endY = modelY(_intersectionPoints.get(1).x, _intersectionPoints.get(1).y, 0); //get real x-coordinate based on original coorinate and transformation 
-      PVector endPoint = new PVector(endX, endY);
-      
-      startEndPoints[0] = startPoint; //assign to Array...
-      startEndPoints[1] = endPoint;
-      
-      secondGrid.add(startEndPoints); //add to ArrayList...
-      
-      //line(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, _intersectionPoints.get(1).x, _intersectionPoints.get(1).y);
+    pushMatrix();
+    translate(width/2, height/2);
+    rotate(rotate1);
+    translate(-width/2, -height/2);
+
+    firstGrid.clear(); //Clear ArrayList 
+    for (int i = 0; i <= width; i+=gridDistance ) {
+      PVector lineStart = new PVector(i+offset1, 0);
+      PVector lineEnd = new PVector(i+offset1, height);
+      ArrayList<PVector> _intersectionPoints = returnIntersectionPoints(lineStart, lineEnd, circleCenter, circleRadius);
+      if (_intersectionPoints.size() == 2) {
+        PVector[] startEndPoints = new PVector[2];
+
+        float startX = modelX(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, 0); //get real x-coordinate based on original coorinate and transformation 
+        float startY = modelY(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, 0); //get real x-coordinate based on original coorinate and transformation 
+        PVector startPoint = new PVector(startX, startY);
+
+        float endX = modelX(_intersectionPoints.get(1).x, _intersectionPoints.get(1).y, 0); //get real x-coordinate based on original coorinate and transformation 
+        float endY = modelY(_intersectionPoints.get(1).x, _intersectionPoints.get(1).y, 0); //get real x-coordinate based on original coorinate and transformation 
+        PVector endPoint = new PVector(endX, endY);
+
+        startEndPoints[0] = startPoint; //assign to Array...
+        startEndPoints[1] = endPoint;
+
+        firstGrid.add(startEndPoints); //add to ArrayList...
+
+        //line(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, _intersectionPoints.get(1).x, _intersectionPoints.get(1).y);
+      }
     }
-  }
-  popMatrix();
+    popMatrix();
+
+    pushMatrix();
+    translate(width/2, height/2);
+    rotate(rotate2);
+    translate(-width/2, -height/2);
+
+    secondGrid.clear();
+    for (int i = 0; i <= width; i+=gridDistance) {
+      PVector lineStart = new PVector(i+offset2, 0);
+      PVector lineEnd = new PVector(i+offset2, height);
+      ArrayList<PVector> _intersectionPoints = returnIntersectionPoints(lineStart, lineEnd, circleCenter, circleRadius);
+      if (_intersectionPoints.size() == 2) {
+        PVector[] startEndPoints = new PVector[2];
+
+        float startX = modelX(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, 0); //get real x-coordinate based on original coorinate and transformation 
+        float startY = modelY(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, 0); //get real x-coordinate based on original coorinate and transformation 
+        PVector startPoint = new PVector(startX, startY);
+
+        float endX = modelX(_intersectionPoints.get(1).x, _intersectionPoints.get(1).y, 0); //get real x-coordinate based on original coorinate and transformation 
+        float endY = modelY(_intersectionPoints.get(1).x, _intersectionPoints.get(1).y, 0); //get real x-coordinate based on original coorinate and transformation 
+        PVector endPoint = new PVector(endX, endY);
+
+        startEndPoints[0] = startPoint; //assign to Array...
+        startEndPoints[1] = endPoint;
+
+        secondGrid.add(startEndPoints); //add to ArrayList...
+
+        //line(_intersectionPoints.get(0).x, _intersectionPoints.get(0).y, _intersectionPoints.get(1).x, _intersectionPoints.get(1).y);
+      }
+    }
+    popMatrix();
 
 
-  ///draw the lines...
-  for(PVector[] startEndPoints : firstGrid){
-    PVector startPoint = startEndPoints[0];
-    PVector endPoint = startEndPoints[1];
-    line(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
+    ///draw the lines...
+    for (PVector[] startEndPoints : firstGrid) {
+      PVector startPoint = startEndPoints[0];
+      PVector endPoint = startEndPoints[1];
+      line(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
+    }
+    for (PVector[] startEndPoints : secondGrid) {
+      PVector startPoint = startEndPoints[0];
+      PVector endPoint = startEndPoints[1];
+      line(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
+    }
+
+    ///draw the circle
+    //ellipse(circleCenter.x, circleCenter.y, circleRadius*2, circleRadius*2);
+
+    ///show instructions
+    if (showUI) {
+      fill(0);
+      if (invertCol) fill(255);
+      text("Press SPACEBAR to toggle visibility of Controls...", 10, height-30);
+    }
+    
+    checkServiceBrush();
   }
-  for(PVector[] startEndPoints : secondGrid){
-    PVector startPoint = startEndPoints[0];
-    PVector endPoint = startEndPoints[1];
-    line(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
-  }
-  
-  ///draw the circle
-  //ellipse(circleCenter.x, circleCenter.y, circleRadius*2, circleRadius*2);
-  
-  ///show instructions
-  if(showUI){
-    fill(0);
-    if(invertCol) fill(255);
-    text("Press SPACEBAR to toggle visibility of Controls...", 10, height-30);
-  }
-  
 }
 
-void keyPressed(){
-  
-  if(key == ' '){
+void keyPressed() {
+
+  if (key == ' ') {
     showUI = !showUI;
+  } else if (key == 'p' || key == 'P') {
+    if (BrushDown == true) {
+      raiseBrush();
+    } else {
+      lowerBrush();
+    }
+  } else if(key == 'r' || key == 'R'){
+    println("Print Rect...");
+    startPrintRect();
   }
-  if(showUI){
+
+  if (showUI) {
     showUI();
   } else {
     hideUI();
   }
-  
 }
 
-void showUI(){
+void startPrintArtwork(){
+  ToDoList = null;
+  ToDoList = new PVector[0];
+  indexDone = -1; 
+  
+  generateArtwork(translatedEyeLeft);
+  generateArtwork(translatedEyeRight);
+
+  Paused = false;
+}
+
+void startPrintRect() {
+  ToDoList = null;
+  ToDoList = new PVector[0];
+  indexDone = -1; 
+
+  PVector[] firstLine = new PVector[2];
+  PVector[] secondLine = new PVector[2];
+  PVector[] thirdLine = new PVector[2];
+  PVector[] fourthLine = new PVector[2];
+  
+  firstLine[0] = new PVector(2,2);
+  firstLine[1] = new PVector(252,2);
+  
+  secondLine[0] = new PVector(252,2);
+  secondLine[1] = new PVector(252,252);
+  
+  thirdLine[0] = new PVector(252,252);
+  thirdLine[1] = new PVector(2,252);
+  
+  fourthLine[0] = new PVector(2,252);
+  fourthLine[1] = new PVector(2,2);
+  
+
+  ArrayList <PVector[]> allPoints = new ArrayList<PVector[]>();
+
+  allPoints.add(firstLine);
+  allPoints.add(secondLine);
+  allPoints.add(thirdLine);
+  allPoints.add(fourthLine);
+  
+  generateArtwork(allPoints);
+
+  Paused = false;
+}
+
+void generateArtwork(ArrayList <PVector[]> _points) {
+
+  //Command 30 (raise pen)
+  ToDoList = (PVector[]) append(ToDoList, new PVector(-30, 0)); 
+
+  for (PVector[] line : _points) {
+
+    for (int i = 0; i < line.length; i++) {
+      // Command Code: Move to (X,Y)
+      ToDoList = (PVector[]) append(ToDoList, new PVector(line[i].x, line[i].y));
+
+      if (i == 0) {
+        //Command 31 (lower pen)
+        ToDoList = (PVector[]) append(ToDoList, new PVector(-31, 0));
+      }
+    }
+
+    //Command 30 (raise pen)
+    ToDoList = (PVector[]) append(ToDoList, new PVector(-30, 0));
+  }
+
+  ToDoList = (PVector[]) append(ToDoList, new PVector(0, 0));
+  
+  println(ToDoList);
+}
+
+
+
+
+
+void showUI() {
   rotationSlider1.show();
   rotationSlider2.show();
   gridDistanceSlider.show();
@@ -205,7 +345,7 @@ void showUI(){
   offsetSlider2.show();
 }
 
-void hideUI(){
+void hideUI() {
   rotationSlider1.hide();
   rotationSlider2.hide();
   gridDistanceSlider.hide();
