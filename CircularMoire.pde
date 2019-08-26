@@ -11,7 +11,7 @@ float rotate2 = 0.0;
 float offset1 = 0.0;
 float offset2 = 0.0;
 
-float gridDistance = 5.0;
+float gridDistance = 6.75;
 boolean invertCol = false;
 
 ArrayList<PVector[]> firstGrid;  //Holding start and end points of first grid
@@ -24,14 +24,16 @@ Toggle invertColor;
 
 boolean showUI = true;
 
+int printGridIndex = 1;
+
 void setup() {
   size(600, 600, P3D);
   smooth();
   pixelDensity(2);
 
   //define circular shape
-  circleRadius = 200;
-  circleCenter = new PVector(width/2, height/2);
+  circleRadius = 125;
+  circleCenter = new PVector(127, 127);
 
   firstGrid = new ArrayList<PVector[]>();
   secondGrid = new ArrayList<PVector[]>();
@@ -44,7 +46,7 @@ void setup() {
     .setPosition(10, 10)
     .setRange(0, PI)
     .setSize(100, 20)
-    .setValue(0.78)
+    .setValue(0.84)
     .setColorCaptionLabel(color(0, 50, 170)) 
     ;
 
@@ -60,6 +62,7 @@ void setup() {
     .setPosition(160, 10)
     .setRange(2.0, 10.0)
     .setSize(100, 20)
+    .setValue(6.75)
     .setColorCaptionLabel(color(0, 50, 170)) 
     ;
 
@@ -73,7 +76,7 @@ void setup() {
   offsetSlider1 = cp5.addSlider("offset1")
     .setPosition(330, 10)
     .setRange(-10, 10.0)
-    .setValue(0.0)
+    .setValue(-0.60)
     .setSize(100, 20)
     .setColorCaptionLabel(color(0, 50, 170)) 
     ;
@@ -150,9 +153,9 @@ void draw() {
     if (invertCol) stroke(255);
 
     pushMatrix();
-    translate(width/2, height/2);
+    translate(circleCenter.x, circleCenter.y);
     rotate(rotate1);
-    translate(-width/2, -height/2);
+    translate(-circleCenter.x, -circleCenter.y);
 
     firstGrid.clear(); //Clear ArrayList 
     for (int i = 0; i <= width; i+=gridDistance ) {
@@ -181,9 +184,9 @@ void draw() {
     popMatrix();
 
     pushMatrix();
-    translate(width/2, height/2);
+    translate(circleCenter.x, circleCenter.y);
     rotate(rotate2);
-    translate(-width/2, -height/2);
+    translate(-circleCenter.x, -circleCenter.y);
 
     secondGrid.clear();
     for (int i = 0; i <= width; i+=gridDistance) {
@@ -249,8 +252,8 @@ void keyPressed() {
       lowerBrush();
     }
   } else if(key == 'r' || key == 'R'){
-    println("Print Rect...");
-    startPrintRect();
+    //println("Print Rect...");
+    startPrintArtwork();
   }
 
   if (showUI) {
@@ -265,9 +268,16 @@ void startPrintArtwork(){
   ToDoList = new PVector[0];
   indexDone = -1; 
   
-  generateArtwork(translatedEyeLeft);
-  generateArtwork(translatedEyeRight);
-
+  if(printGridIndex == 1){
+    generateArtwork(firstGrid);
+  } else if(printGridIndex == 2) {
+    generateArtwork(secondGrid);
+  }
+  
+  printGridIndex ++;
+  
+  if(printGridIndex > 2) printGridIndex = 1;
+  
   Paused = false;
 }
 
