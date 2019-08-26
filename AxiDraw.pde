@@ -2,7 +2,7 @@ boolean SerialOnline;
 boolean doSerialConnect = true;
 Serial myPort; 
 
-float MotorSpeed = 4000.0;  // Steps per second, 1500 default
+float MotorSpeed = 2300.0;  // Steps per second, 1500 default
 boolean reverseMotorX = false;
 boolean reverseMotorY = false;
 
@@ -16,7 +16,7 @@ int NextMoveTime;          //Time we are allowed to begin the next movement (i.e
 boolean BrushDown;
 
 int delayAfterRaisingBrush = 300; //ms
-int delayAfterLoweringBrush = 300; //ms
+int delayAfterLoweringBrush = 220; //ms
 
 int xLocAtPause;
 int yLocAtPause;
@@ -57,6 +57,7 @@ int yBrushRestPositionPixels = 6; //6
 
 boolean PaperSizeA4 = true; // true for A4. false for US letter.
 
+int portNumber = 9;
 
 void raiseBrush() {  
   int waitTime = NextMoveTime - millis();
@@ -333,7 +334,7 @@ void scanSerial() {
 
     println("Discovered OS: " + os);
 
-    portName = Serial.list()[9]; ///Hier den Port einstellen
+    portName = Serial.list()[portNumber]; ///Hier den Port einstellen
     boolean portErr = false;
 
     try {    

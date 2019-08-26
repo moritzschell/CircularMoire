@@ -24,7 +24,7 @@ Toggle invertColor;
 
 boolean showUI = true;
 
-int printGridIndex = 1;
+int printGridIndex = 2;
 
 void setup() {
   size(600, 600, P3D);
@@ -37,8 +37,7 @@ void setup() {
 
   firstGrid = new ArrayList<PVector[]>();
   secondGrid = new ArrayList<PVector[]>();
-
-
+  
   ///UI Stuff
   cp5 = new ControlP5(this);
 
@@ -76,7 +75,7 @@ void setup() {
   offsetSlider1 = cp5.addSlider("offset1")
     .setPosition(330, 10)
     .setRange(-10, 10.0)
-    .setValue(-0.60)
+    .setValue(0.0)
     .setSize(100, 20)
     .setColorCaptionLabel(color(0, 50, 170)) 
     ;
@@ -84,10 +83,13 @@ void setup() {
   offsetSlider2 = cp5.addSlider("offset2")
     .setPosition(330, 40)
     .setRange(-10, 10.0)
-    .setValue(0.0)
+    .setValue(0.13)
     .setSize(100, 20)
     .setColorCaptionLabel(color(0, 50, 170)) 
     ;
+    
+    
+  calculateGrids();
 
   //AxiDrawSettings___________________________________________
   ServoUp = 7500 + 175 * ServoUpPct;    // Brush UP position, native units
@@ -152,7 +154,44 @@ void draw() {
     stroke(0);
     if (invertCol) stroke(255);
 
-    pushMatrix();
+    ///draw the lines...
+    for (PVector[] startEndPoints : firstGrid) {
+      PVector startPoint = startEndPoints[0];
+      PVector endPoint = startEndPoints[1];
+      line(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
+    }
+    for (PVector[] startEndPoints : secondGrid) {
+      PVector startPoint = startEndPoints[0];
+      PVector endPoint = startEndPoints[1];
+      line(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
+    }
+
+    ///draw the circle
+    //ellipse(circleCenter.x, circleCenter.y, circleRadius*2, circleRadius*2);
+
+    ///show instructions
+    if (showUI) {
+      fill(0);
+      if (invertCol) fill(255);
+      text("Press SPACEBAR to toggle visibility of Controls...", 10, height-30);
+    }
+    
+    checkServiceBrush();
+  }
+}
+
+public void controlEvent(ControlEvent theEvent) {
+  //println(
+  //"## controlEvent / id:"+theEvent.controller().getId()+
+  //  " / name:"+theEvent.controller().getName()+
+  //  " / value:"+theEvent.controller().getValue()
+  //  );
+  
+  calculateGrids();
+}
+
+void calculateGrids(){
+  pushMatrix();
     translate(circleCenter.x, circleCenter.y);
     rotate(rotate1);
     translate(-circleCenter.x, -circleCenter.y);
@@ -213,33 +252,8 @@ void draw() {
       }
     }
     popMatrix();
-
-
-    ///draw the lines...
-    for (PVector[] startEndPoints : firstGrid) {
-      PVector startPoint = startEndPoints[0];
-      PVector endPoint = startEndPoints[1];
-      line(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
-    }
-    for (PVector[] startEndPoints : secondGrid) {
-      PVector startPoint = startEndPoints[0];
-      PVector endPoint = startEndPoints[1];
-      line(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
-    }
-
-    ///draw the circle
-    //ellipse(circleCenter.x, circleCenter.y, circleRadius*2, circleRadius*2);
-
-    ///show instructions
-    if (showUI) {
-      fill(0);
-      if (invertCol) fill(255);
-      text("Press SPACEBAR to toggle visibility of Controls...", 10, height-30);
-    }
-    
-    checkServiceBrush();
-  }
 }
+
 
 void keyPressed() {
 
@@ -271,12 +285,18 @@ void startPrintArtwork(){
   if(printGridIndex == 1){
     generateArtwork(firstGrid);
   } else if(printGridIndex == 2) {
-    generateArtwork(secondGrid);
+    //generateArtwork(secondGrid);
+    for(PVector[] line : secondGrid){
+      ArrayList <PVector[]> _linePoints = new ArrayList<PVector[]>();
+      _linePoints.add(line);
+      generateArtwork(_linePoints);
+    }
+    
   }
   
-  printGridIndex ++;
+  //printGridIndex ++;
   
-  if(printGridIndex > 2) printGridIndex = 1;
+  //if(printGridIndex > 2) printGridIndex = 1;
   
   Paused = false;
 }
@@ -339,7 +359,7 @@ void generateArtwork(ArrayList <PVector[]> _points) {
 
   ToDoList = (PVector[]) append(ToDoList, new PVector(0, 0));
   
-  println(ToDoList);
+  //println(ToDoList);
 }
 
 
